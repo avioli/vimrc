@@ -3,20 +3,27 @@
 " and Gary Bernhardt's
 " https://github.com/garybernhardt/dotfiles/blob/master/.vimrc
 
+" vim: set fdm=marker :
 
-" Init Pathogen
-filetype on
-filetype off
-call pathogen#infect()
-"call pathogen#runtime_append_all_bundles()
-"call pathogen#helptags()
+set nocompatible " be iMproved
 
-filetype on
-filetype plugin on
-filetype indent on
-"filetype indent plugin on
+" Lots of VIM stuff have issues with FishShell, so we change it
+if &shell =~# 'fish$'
+  set shell=sh
+endif
 
-set nocompatible
+source ~/.vim/setup/vundle.vim
+
+
+
+" enable per-directory .vimrc files
+set exrc
+" disable unsafe commands in local .vimrc files
+set secure
+
+" modelines
+set modeline
+set modelines=20
 
 " set indentation and tab stops
 set tabstop=2
@@ -31,8 +38,10 @@ set showmatch
 " set the search scan to wrap lines
 set wrapscan
 " CHECK: let's see if I can live with case sensitive searches
+" RESULT: NOPE! I prefer case insensitive searches.
 "set noignorecase
 " CHECK: make searches case-sensitive only if they contain upper-case characters
+" RESULT: OK. This works for me.
 set ignorecase smartcase
 
 " set the forward slash to be the slash of note.
@@ -59,18 +68,36 @@ set t_Co=256
 set cursorline
 "colorscheme ir_black
 "colorscheme xoria256
-set background=light
-colorscheme solarized
-syntax on
+if &t_Co < 256 || $SSH_CLIENT || $SSH_CONNECTION
+  set background=dark
+  colorscheme xoria256
+elseif &t_Co >= 256 || has("gui_running")
+  " set background=light
+  " colorscheme solarized
+  set background=dark
+  colorscheme xoria256
+endif
+" hi NonText term=bold cterm=bold ctermfg=1 gui=bold guifg=Blue
+" hi SpecialKey term=reverse cterm=reverse ctermfg=1 guifg=Blue
+if &t_Co > 2 || has("gui_running")
+  syntax on
+endif
+
+" set non-printable characters
+set listchars=nbsp:¬,tab:│\ ,extends:»,precedes:«,trail:•
 
 " Prevent Vim from clobbering the scrollback buffer. See
 " http://www.shallowsky.com/linux/noaltscreen.html
 "set t_ti= t_te=
 
 " Store temporary files in a central spot
-set backup
+set nobackup          " do not keep backups after close
+set nowritebackup     " do not keep a backup while working
+set noswapfile        " don't keep swp files either
+set backupcopy=yes    " keep attributes of the original file
 set backupdir=~/.vim-tmp,~/.tmp,~/tmp,/var/tmp,/tmp
 set directory=~/.vim-tmp,~/.tmp,~/tmp,/var/tmp,/tmp
+set backupskip=/tmp/*,$TMPDIR/*,$TMP/*,$TEMP/*,/private/tmp/*
 
 " hide buffers
 set bufhidden=hide
@@ -90,7 +117,7 @@ set switchbuf=useopen
 set stl=%f\ %m\ %r\ Line:%l/%L[%p%%]\ Col:%v\ Buf:#%n\ [%b][0x%B]\ %{strftime('%I:%M%p')}
 
 " some mapping and commands
-cnoreabbrev nt NERDTreeToggle
+"cnoreabbrev nt NERDTreeToggle
 
 " don't update display while executing macros
 set lazyredraw
@@ -140,6 +167,9 @@ set showfulltag
 " wrap text to 200 columns
 set textwidth=200
 
+" highlight the 80th column
+set colorcolumn=80
+
 " get rid of the silly characters in separators -- same as derek wyatt
 " CHECK: what's the point of it? the help didn't clarified it. I need an
 " actual example
@@ -175,7 +205,8 @@ let mapleader = ","
 augroup vimrcEx
   " Clear all autocmds in the group
   autocmd!
-  autocmd FileType text setlocal textwidth=78
+  " autocmd FileType text setlocal textwidth=78
+  autocmd FileType mail setlocal fo+=aw
   " Jump to last cursor position unless it's invalid or in an event handler
   autocmd BufReadPost *
     \ if line("'\"") > 0 && line("'\"") <= line("$") |
@@ -183,17 +214,41 @@ augroup vimrcEx
     \ endif
 
   "for ruby, autoindent with two spaces, always expand tabs
-  autocmd FileType ruby,haml,eruby,yaml,html,javascript,sass,cucumber set ai sw=2 sts=2 et
-  autocmd FileType python set sw=4 sts=4 et
+  " autocmd FileType ruby,haml,eruby,yaml,html,javascript,sass,cucumber set ai sw=2 sts=2 et
+  " autocmd FileType python set sw=4 sts=4 et
 
-  autocmd! BufRead,BufNewFile *.sass setfiletype sass
+  " autocmd! BufRead,BufNewFile *.sass setfiletype sass
+  autocmd! BufRead,BufNewFile *.dump setfiletype sql
 
   autocmd BufRead *.mkd  set ai formatoptions=tcroqn2 comments=n:&gt;
   autocmd BufRead *.markdown  set ai formatoptions=tcroqn2 comments=n:&gt;
 
+  " set up syntax highlighting for my e-mail
+  au BufRead,BufNewFile .followup,.article,.letter,/tmp/pico*,nn.*,snd.*,/tmp/mutt* :set ft=mail
+
   " Indent p tags
   "autocmd FileType html,eruby if g:html_indent_tags !~ '\\|p\>' | let g:html_indent_tags .= '\|p\|li\|dt\|dd' | endif
+
+  " PHP Manual pages
+  autocmd FileType php set keywordprg=pman
 augroup END
+
+" Y to yank to end of line
+map Y y$
+
+" Ctrl-V to paste what's yanked in insert mode
+imap <C-v> <Esc>pi
+
+" kj to exit insert mode
+imap kj <Esc>
+
+" move up and down by screen lines instead of text lines
+nnoremap j gj
+nnoremap k gk
+
+" faster viewport scrolling
+nnoremap <C-e> 3<C-e>
+nnoremap <C-y> 3<C-y>
 
 " turn off the highlight search
 nmap <silent> ,n :nohls<CR>
@@ -211,6 +266,9 @@ nmap <silent> <C-i> 10zh
 
 " use C-e to replace the original ',' mapping
 " nnoremap <C-E> ,
+
+" show invisible characters
+noremap <silent> ,l :set list!<CR>
 
 " Windows
 "noremap <silent> ,h :wincmd h<CR>
@@ -247,10 +305,10 @@ noremap <silent> ,bb :b#<CR>
 "nnoremap ,, <c-^>
 
 " Tabs
-nmap <silent> ,tt :tabnext<CR>
-nmap <silent> ,tT :tabprevious<CR>
-nmap <silent> ,tn :tabnew<CR>
-nmap <silent> ,td :tabclose<CR>
+" nmap <silent> ,tt :tabnext<CR>
+" nmap <silent> ,tT :tabprevious<CR>
+" nmap <silent> ,tn :tabnew<CR>
+" nmap <silent> ,td :tabclose<CR>
 set showtabline=2
 
 " files
@@ -278,11 +336,18 @@ inoremap <s-tab> <c-n>
 nnoremap <CR> :nohlsearch<cr>
 
 " ARROW KEYS ARE UNACCEPTABLE
-map <Left> :echo "no!"<cr>
-map <Right> :echo "No!"<cr>
-map <Up> :echo "NO!"<cr>
-map <Down> :echo "nO!"<cr>
+" map <Left> :echo "no!"<cr>
+" map <Right> :echo "No!"<cr>
+" map <Up> :echo "NO!"<cr>
+" map <Down> :echo "nO!"<cr>
 
+function! MapArrowsBack()
+  map <Left> h
+  map <Down> j
+  map <Up> k
+  map <Right> l
+endfunction
+:command! FixArrowKeys :call MapArrowsBack()
 
 " RENAME CURRENT FILE
 function! RenameFile()
@@ -306,16 +371,16 @@ set synmaxcol=2048
 " NERD Tree settings
 "
 " toggle NERD Tree on and off with F7
-nmap <F7> :NERDTreeToggle<CR>
+"nmap <F7> :NERDTreeToggle<CR>
 " close NERD Tree with S-F7
-nmap <S-F7> :NERDTreeClose<CR>
+"nmap <S-F7> :NERDTreeClose<CR>
 " show bookmarks table
-let NERDTreeShowBookmarks=1
+"let NERDTreeShowBookmarks=1
 " don't display these kinds of files
-let NERDTreeIgnore=[ '\.ncb$', '\.suo$', '\.vcproj\.RIMNET', '\.obj$',
-                   \ '\.ilk$', '^BuildLog.htm$', '\.pdb$', '\.idb$',
-                   \ '\.embed\.manifest$', '\.embed\.manifest.res$',
-                   \ '\.intermediate\.manifest$', '^mt.dep$' ]
+"let NERDTreeIgnore=[ '\.ncb$', '\.suo$', '\.vcproj\.RIMNET', '\.obj$',
+"                   \ '\.ilk$', '^BuildLog.htm$', '\.pdb$', '\.idb$',
+"                   \ '\.embed\.manifest$', '\.embed\.manifest.res$',
+"                   \ '\.intermediate\.manifest$', '^mt.dep$' ]
 
 " TwitVim settings
 "let twitvim_browser_cmd = 'chrome'
@@ -351,11 +416,43 @@ augroup avioli_twitvim
     au FileType twitvim call TwitVimMappings()
 augroup END
 
-" remove trailing space when saving
-autocmd BufWritePre * :%s/\s\+$//e
+
+" Clear whitespaces {{{1
+
+" augroup upon_write
+"   au!
+"   " remove trailing space when saving
+"   au BufWritePre * call ClearWhiteSpaces()
+"   au FileType mail let b:noStripWhitespace=1
+" augroup END
+
+function! ClearWhiteSpaces()
+  " Only strip if the b:noStripWhitespace isn't set
+  if exists('b:noStripWhitespace')
+    return
+  endif
+
+  let matches = ""
+  redir => matches
+  silent! execute '%s/\s\+$//en'
+  redir END
+  if strlen(matches) > 0
+    let choice = confirm('There are whitespaces. Trim before save?', "&Yes\n&No", 1)
+    if (choice == 1)
+      silent! execute '%s/\s\+$//e'
+    endif
+  endif
+" :%s/\s\+$//e
+endfunction
+
+:command! DisableWhiteSpaceQuestion let b:noStripWhitespace=1
+:command! ClearWhiteSpaces :call ClearWhiteSpaces()
+
+" }}}
+
 
 " handle correctly filetype syntax based on name
-au BufRead,BufNewFile jquery.*.js set ft=javascript syntax=jquery
+au BufRead,BufNewFile jquery.*.js set ft=javascript "syntax=jquery
 
 " copy to system clipboard OSX
 "vmap <C-S-c> y:call system("pbcopy", getreg("\""))<cr>
@@ -364,18 +461,16 @@ set pastetoggle=<F2>
 
 
 
-" =========== Command-T
-"map <silent> ,, :CommandTFlush<cr>\|:CommandT<cr>
+" =========== Command-T {{{1
+map <silent> ,, :CommandTFlush<cr>\|:CommandT<cr>
 
 " taken from destroyallsoftware.com/file-navigation-in-vim.html
 " Open files with ,f
-map ,, :CommandTFlush<cr>\|:CommandT<cr>
+map ,cc :CommandTFlush<cr>\|:CommandT<cr>
 " Open files, limited to the directory of the current file, with ,gf
 " This requires the %% mapping found below.
 map ,gf :CommandTFlush<cr>\|:CommandT %%<cr>
-
-
-" =========== RAILS
+" Rails helpers
 map ,gv :CommandTFlush<cr>\|:CommandT app/views<cr>
 map ,gc :CommandTFlush<cr>\|:CommandT app/controllers<cr>
 map ,gm :CommandTFlush<cr>\|:CommandT app/models<cr>
@@ -383,7 +478,10 @@ map ,gh :CommandTFlush<cr>\|:CommandT app/helpers<cr>
 map ,gl :CommandTFlush<cr>\|:CommandT lib<cr>
 map ,gp :CommandTFlush<cr>\|:CommandT public<cr>
 map ,gs :CommandTFlush<cr>\|:CommandT public/stylesheets<cr>
+" }}}
 
+
+" =========== RAILS {{{1
 map ,gr :topleft :split config/routes.rb<cr>
 map ,gg :topleft 100 :split Gemfile<cr>
 
@@ -450,6 +548,7 @@ function! InlineVariable()
   :let @b = l:tmp_b
 endfunction
 nnoremap ,ri :call InlineVariable()<cr>
+" }}}
 
 
 " ============ Currently open file helpers
@@ -470,7 +569,7 @@ set winminheight=5
 set winheight=999
 
 
-" ======= RSPEC
+" ======= RSPEC {{{1
 function! RunTests(filename)
   " Write the file and run tests for the given filename
   :w
@@ -526,7 +625,7 @@ function! PromoteToLet()
   :normal ==
 endfunction
 :command! PromoteToLet :call PromoteToLet()
-:map ,p :PromoteToLet<cr>
+":map ,p :PromoteToLet<cr>
 
 
 " SWITCH BETWEEN TEST AND PRODUCTION CODE
@@ -556,6 +655,7 @@ function! AlternateForCurrentFile()
   return new_file
 endfunction
 nnoremap ,. :call OpenTestAlternate()<cr>
+" }}}
 
 
 " iPad colour scheme fix
@@ -600,21 +700,278 @@ EOF
 endfunction
 map ,h :call HTMLEncode()<CR>
 
-" insert image into html
-function! InsertImageIntoHTML()
-ruby << EOF
 
-EOF
-endfunction
-:command! InsertImageIntoHTML :call InsertImageIntoHTML()
-
-augroup avioli
+augroup vimrc
   " Clear all autocmds in the group
-  autocmd!
+  au!
 
-  autocmd! BufRead,BufNewFile *.ctp setfiletype php
-  autocmd FileType html,php :imap <C-S-W> <Esc>bi<<Esc>ea><Esc>v%y%p%a/<Esc>hi
+  " cakephp files are html/php as well
+  " autocmd! BufRead,BufNewFile *.ctp setfiletype php
+
+  " create an html tag from the word next the cursor
+  " autocmd FileType html,php :imap <C-S-W> <Esc>bi<<Esc>ea><Esc>v%y%p%a/<Esc>hi
+
+  " compile
+  " autocmd BufWritePost *.coffee :!coffee -c "%"
+  " autocmd BufWritePost *.sass   :!sass "%" "%:r"
+  " autocmd BufWritePost *.scss   :!sass --scss "%" "%:r"
+  " autocmd BufWritePost *.slim   :!slimrb -p "%" > "%:r"
+
+  " tests
+  " autocmd BufWritePost *Test.php :!phpunit --colors %
+
+  function! RunTest ()
+    let name = expand("%:t:r") " just the file name, sans ext
+    let test = expand("%:p:h").'/tests/'.name.'Test.php'
+    if filereadable(test)
+      :exec '!phpunit --colors "'.test.'"'
+    endif
+    " let arr = matchlist(name, '\(.*\)Test')
+    " if arr[1] != ''
+    " endif
+  endfunction
+
+  " autocmd FileType php nmap ,t :w\|:call RunTest()<cr>
+
+  "{{{ Concealing
+  au VimEnter * syntax keyword Statement lambda conceal cchar=λ
+  " JS
+  au FileType javascript,php syntax keyword jsFunction function conceal cchar=𝑓
+  au FileType javascript syntax keyword jsReturn return conceal cchar=↩
+  "au FileType javascript syntax match jsThis "this." conceal cchar=@
+  "au FileType javascript syntax match Operator ";$" conceal cchar= 
+  "au FileType javascript syntax match Operator ",$" conceal cchar= 
+  " PHP
+  au FileType php syntax match phpMemberSelector "->" conceal cchar=·
+  "au FileType php syntax match phpRelation "=>" conceal cchar=⇒
+  au FileType php syntax match phpIdentifier "$this->" conceal cchar=@
+  au FileType php imap "@" <c-r>"$this->"<cr>
+  "
+  " TODO:
+  " semicolon if last char in line within a block {}
+  " comma if last char in line within brackets []
+  " @prop instead of this.prop
+  " .prototype. with →
+  "
+  au VimEnter * hi! link Conceal Statement
+  au VimEnter * set conceallevel=2
+  " au VimEnter * set concealcursor=nc
+  "}}}
+
+  " absolute line numbers in insert mode
+  au InsertEnter * :set nu
+  au InsertLeave * :set rnu
+
+  " Turn off search highlighting when moving
+  " au CursorMoved,InsertEnter * set nohls
+
+  " don't always center the cursor in screen when switching buffers
+  au BufLeave * let b:winview = winsaveview()
+  au BufEnter * if(exists('b:winview')) | call winrestview(b:winview) | endif
+
+  "au FileType php set expandtab tabstop=8 softtabstop=2 shiftwidth=2
+
+  " reload vimrc when we save it
+  " au BufWritePost .vimrc so ~/.vimrc
+
+augroup END
+
+augroup lines
+  au!
+  au WinLeave,InsertEnter * set nocursorline " | set nocursorcolumn
+  au WinEnter,InsertLeave * set cursorline " | set cursorcolumn
 augroup END
 
 " for vim-textobj-rubyblock
 runtime macros/matchit.vim
+
+set runtimepath^=~/.vim/bundle/ctrlp.vim
+
+" highlight characters over the 80 chars boundary
+function! Mark80Col()
+    match Error /\%81v.\+/
+endfunction
+:command! Mark80Col :call Mark80Col()
+
+" Append modeline after last line in buffer.
+" Use substitute() instead of printf() to handle '%%s' modeline in LaTeX
+" files.
+function! AppendModeline()
+  let l:modeline = printf(" vim: set ".
+      \ "ts=%d sw=%d tw=%d :", &tabstop, &shiftwidth, &textwidth)
+  let l:modeline = substitute(&commentstring, "%s", l:modeline, "")
+  call append(line("$"), l:modeline)
+endfunction
+nnoremap <silent> <Leader>ml :call AppendModeline()<CR>
+
+" GIT
+"
+" Search for the local change
+" <<<<<<< .*\n\([^======].*\n\)*=======
+" Search for the remote change
+" =======\n\([^>>>>>>].*\n\)*>>>>>>> .*
+
+" Fix the width of the windows to the default width
+:command! FixWidth :set wiw=20
+
+" Highlight the word under the cursor and all its occurances
+map <silent> ,hl *N
+
+" Load any messages in the current/file path
+function! ShowMessage()
+  if(filereadable('message'))
+    echohl WelcomeMsg
+    echo "YOU'VE GOT MESSAGES:"
+
+    for line in readfile('message', '', 255)
+      echo line
+    endfor
+
+    echo ""
+    echohl None
+
+    let choice = confirm('Remove messages?', "&No\n&Yes", 1)
+
+    if(choice == 2)
+      let delstatus = delete('message')
+      if (delstatus != 0)
+        echohl WarnMsg
+        echo "Filed to delete messages"
+        echohl None
+      endif
+    else
+      echohl WelcomeMsg
+      echo "Messages retained"
+      echohl None
+    endif
+  endif
+endfunction
+call ShowMessage()
+
+
+
+" SEARCH and REPLACE
+"
+" add WordPress spaces between brackets
+" '<,'>s/(/( /g | '<,'>s/)/ )/g
+"
+" interchange " and '
+" '<,'>s/\v("|')/\={'"':"'","'":'"'}[submatch(0)]/g
+
+
+" Capture the shell output using say :R ls -l
+:command! -nargs=* -complete=shellcmd R new | setlocal buftype=nofile bufhidden=hide noswapfile | r !<args>
+
+
+
+" CakePHP {{{1
+
+" augroup cakephp
+"   autocmd!
+"   autocmd BufNewFile,BufRead * call s:CakePHPDetect(expand("<afile>:p:h"))
+"   autocmd VimEnter * if expand("<amatch") == "" && !exists("b:CakePHP") | call s:CakePHPDetect(getcwd()) | endif | if exists("b:CakePHP") | call s:SetCakePHPOptions() | endif
+"   autocmd BufNewFile,BufRead * if exists("b:CakePHP") | call s:SetCakePHPOptions() | endif
+"   autocmd BufNewFile,BufRead */app/views/* set ts=4 sw=4 tw=200 noet
+"   autocmd BufNewFile,BufRead */app/controllers/* set ts=4 sw=4 tw=200 noet
+"   " echo b:CakePHP
+" augroup END
+"
+" function! s:SetCakePHPOptions()
+" 	set wig +=*.jpg,*.png,*.gif
+"   set wig +=console,ata,locale,models,plugins,tests,tmp,vendors
+"   set wig +=*.py,*.pyc
+"   set wig +=cake/*,challenges/*,common/*,conf/*,db/*,publicchallenges*,venv/*
+"   set wig +=app/webroot/js,app/webroot/filemanager,app/webroot/ofc
+"   set wig +=jquery*,report_*
+"   set wig +=app/old_models
+"
+"   echohl CakePHPMsg
+"     echo "Inside a CakePHP directory!"
+"   echohl None
+" endfunction
+"
+" function! s:CakePHPDetect(path)
+"   if filereadable(a:path . "/app_controller.php")
+"     let b:CakePHP = 1
+"   endif
+" endfunction
+
+" }}}
+
+
+
+" Ctrl-P {{{1
+:map ,p :CtrlP<cr>
+
+let g:ctrlp_custom_ignore = {
+  \ 'dir': '\.git$\|\.svn$\|\.hg$\|build$\|venv\|node_modules\|dist\|bower_components$',
+  \ 'file': '\.pyc$\|\.so$\|\.class$\|.swp$',
+  \ }
+" }}}
+
+
+" Clojure {{{1
+" Some coloring settings
+let g:vimclojure#HighlightBuiltins = 1
+let g:vimclojure#ParenRainbow = 1
+" For the Nailgun server
+"http://naleid.com/blog/2011/12/19/getting-a-clojure-repl-in-vim-with-vimclojure-nailgun-and-leiningen/
+" let vimclojure#NailgunClient = "/usr/local/bin/ng"
+" let vimclojure#WantNailgun = 1
+" }}}
+
+
+" Rainbow Parenthesis -- Always on {{{1
+function! RainbowAlwaysOn()
+  au VimEnter * RainbowParenthesesToggle
+  au Syntax * RainbowParenthesesLoadRound
+  au Syntax * RainbowParenthesesLoadSquare
+  au Syntax * RainbowParenthesesLoadBraces
+endfunction
+" }}}
+
+
+map -a :call SyntaxAttr()<cr>
+
+" Unite {{{1
+" call unite#filters#matcher_default#use(['matcher_fuzzy'])
+" nnoremap ,, :<C-u>Unite -start-insert file_rec<CR>
+" }}}
+
+
+" Tabs {{{1
+nmap ,1 :tabnext 1<cr>
+nmap ,2 :tabnext 2<cr>
+nmap ,3 :tabnext 3<cr>
+nmap ,4 :tabnext 4<cr>
+nmap ,5 :tabnext 5<cr>
+nmap ,6 :tabnext 6<cr>
+nmap ,7 :tabnext 7<cr>
+nmap ,8 :tabnext 8<cr>
+nmap ,9 :tabnext 9<cr>
+" }}}
+
+
+" Rooter {{{1
+" https://github.com/airblade/vim-rooter
+let g:rooter_manual_only = 1
+map <slient> <unique> ,roo <Plug>RooterChangeToRootDirectory
+"let g:rooter_patterns = ['Rakefile', '.git/']
+" }}}
+
+
+" EditorConfig {{{1
+" let g:EditorConfig_verbose = 1
+" let g:EditorConfig_exec_path = '/usr/local/bin/editorconfig'
+" }}}
+
+
+" UltiSnips {{{1
+" Trigger configuration. Do not use <tab> if you use https://github.com/Valloric/YouCompleteMe.
+"let g:UltiSnipsExpandTrigger="<tab>"
+"let g:UltiSnipsJumpForwardTrigger="<c-b>"
+"let g:UltiSnipsJumpBackwardTrigger="<c-z>"
+" If you want :UltiSnipsEdit to split your window.
+"let g:UltiSnipsEditSplit="vertical"
+" }}}
+
